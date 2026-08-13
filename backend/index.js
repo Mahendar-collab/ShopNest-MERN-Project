@@ -2,6 +2,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const connectDB = require('./config/db');
+const path = require('path');
 
 dotenv.config();
 connectDB();
@@ -13,7 +14,7 @@ app.use(cors({
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     process.env.FRONTEND_URL
-  ],
+  ].filter(Boolean),
   credentials: true
 }));
 
@@ -25,9 +26,21 @@ app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/payment', require('./routes/paymentRoutes'));
 app.use('/api/analytics', require('./routes/analyticsRoutes'));
 
-app.get('/', (req, res) => {
-  res.send('ShopNest API is running...');
-});
+if (process.env.NODE_ENV === 'production') {
+  const frontendPath = path.join(__dirname, '../frontend/build');
+
+  // Serve React static files
+  app.use(express.static(frontendPath));
+
+  // React fallback
+  app.use((req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+  });
+} else {
+  app.get('/', (req, res) => {
+    res.send('ShopNest API is running in Development mode...');
+  });
+}
 
 const PORT = process.env.PORT || 5000;
 
